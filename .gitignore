@@ -1,3 +1,5 @@
 reports
 .github
 .venv
+models/checkpoints
+models/__pycache__
