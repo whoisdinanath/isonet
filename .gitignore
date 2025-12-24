@@ -3,3 +3,4 @@ reports
 .venv
 models/checkpoints
 models/__pycache__
+data
