@@ -29,6 +29,34 @@ class IsoNetDataset(Dataset):
     def __len__(self):
         return len(self.meta)
 
+    def load_face_tracks(self, txt_path):
+        """
+        Parses the VoxCeleb face track text file.
+        Format: FRAME X Y W H (Normalized 0-1)
+        Returns: {frame_idx: (x, y, w, h)}
+        """
+        tracks = {}
+        if not os.path.exists(txt_path):
+            return None 
+
+        with open(txt_path, 'r') as f:
+            lines = f.readlines()
+            
+        # VoxCeleb headers usually end around line 7. We look for the data start.
+        # Data lines start with an integer frame number.
+        for line in lines:
+            parts = line.strip().split()
+            # simple check: need 5 parts and first part must be digit
+            if len(parts) < 5 or not parts[0].isdigit():
+                continue
+            
+            # Parse: FRAME X Y W H
+            frame_idx = int(parts[0])
+            x, y, w, h = float(parts[1]), float(parts[2]), float(parts[3]), float(parts[4])
+            tracks[frame_idx] = (x, y, w, h)
+            
+        return tracks
+
     def load_video_frames(self, video_path, start_time):
         """
         Efficiently seeks to start_time and reads exactly target_frames.
@@ -36,29 +64,68 @@ class IsoNetDataset(Dataset):
         """
         cap = cv2.VideoCapture(str(video_path))
         
-        # 1. Get Video Properties
+        # 1. Locate Face Tracks
+        # Assumes .txt file is in the same folder as .mp4 with same name
+        # e.g., .../id00017/video.mp4 -> .../id00017/video.txt
+        txt_path = str(video_path).replace(".mp4", ".txt")
+        face_tracks = self.load_face_tracks(txt_path)
+        
+        # 2. Get Video Properties for Denormalization
+        vid_w = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        vid_h = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
         vid_fps = cap.get(cv2.CAP_PROP_FPS)
         if vid_fps == 0 or np.isnan(vid_fps): 
             vid_fps = 25.0
             
-        # 2. Calculate Start Frame Index
+        # 3. Calculate Start Frame Index
         start_frame_idx = int(start_time * vid_fps)
         
-        # 3. Seek to exact frame (The "Sniper" shot)
+        # 4. Seek to exact frame
         cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame_idx)
         
         frames = []
-        for _ in range(self.target_frames):
+        for i in range(self.target_frames):
             ret, frame = cap.read()
             if not ret:
                 break
             
-            # 4. Preprocessing
+            curr_frame_idx = start_frame_idx + i
+            
+            # --- CROP LOGIC ---
+            # Default to full frame if track missing
+            final_frame = frame 
+            
+            if face_tracks and curr_frame_idx in face_tracks:
+                # Get normalized coords
+                x, y, w, h = face_tracks[curr_frame_idx]
+                
+                # Convert to pixels
+                x_px = int(x * vid_w)
+                y_px = int(y * vid_h)
+                w_px = int(w * vid_w)
+                h_px = int(h * vid_h)
+                
+                # Safety Clamp (prevent crashing on edge pixels)
+                x_px = max(0, min(x_px, int(vid_w)))
+                y_px = max(0, min(y_px, int(vid_h)))
+                w_px = max(1, min(w_px, int(vid_w) - x_px)) # Ensure width >= 1
+                h_px = max(1, min(h_px, int(vid_h) - y_px)) # Ensure height >= 1
+                
+                # Perform Crop
+                crop = frame[y_px:y_px+h_px, x_px:x_px+w_px]
+                
+                # Check if crop is valid (not empty)
+                if crop.size > 0:
+                    final_frame = crop
+            
+            # ------------------
+            
+            # 5. Preprocessing
             # BGR to RGB
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            final_frame = cv2.cvtColor(final_frame, cv2.COLOR_BGR2RGB)
             # Resize (Standard for LipReading is 112x112)
-            frame = cv2.resize(frame, self.video_size)
-            frames.append(frame)
+            final_frame = cv2.resize(final_frame, self.video_size)
+            frames.append(final_frame)
             
         cap.release()
         
@@ -124,20 +191,19 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     import sys
 
-    TEST_CSV = "/run/media/neuronetix/BACKUP/Dataset/VOX/manual/dev/multich/metadata.csv"
+    TEST_CSV = "/run/media/neuronetix/BACKUP/Dataset/VOX/manual/dev/multich/train.csv"
     
     if not os.path.exists(TEST_CSV):
         print(f"Error: Could not find {TEST_CSV}")
-        print("Please run the split_dataset script first or point to metadata.csv")
         sys.exit(1)
 
-    print("Testing IsoNetDataset...")
+    print("Testing IsoNetDataset with Face Cropping...")
     dataset = IsoNetDataset(TEST_CSV)
     print(f"Dataset Length: {len(dataset)}")
 
     # 1. Load one sample
     print("Loading Sample #0...")
-    mixed, clean, video = dataset[2]
+    mixed, clean, video = dataset[0]
 
     # 2. Verify Shapes
     print("\n--- Tensor Shapes ---")
@@ -145,10 +211,30 @@ if __name__ == "__main__":
     print(f"Clean Audio: {clean.shape}  (Expected: [1, 64000])")
     print(f"Video:       {video.shape}  (Expected: [3, 100, 112, 112])")
 
-    # 3. Save Visual Check
-    print("\n--- Saving Debug Image ---")
-    # Take the 50th frame (middle of clip)
-    # Permute from [C, T, H, W] -> [H, W, C] for saving
+    # 3. Save Visual Check with Multiple Frames
+    print("\n--- Saving Cropped Face Samples ---")
+    fig, axes = plt.subplots(2, 5, figsize=(15, 6))
+    fig.suptitle('Face Cropping Test: 10 Sample Frames', fontsize=16)
+    
+    # Sample 10 frames evenly across the clip
+    sample_frames = np.linspace(0, video.shape[1]-1, 10, dtype=int)
+    
+    for idx, frame_num in enumerate(sample_frames):
+        row = idx // 5
+        col = idx % 5
+        
+        # Permute from [C, T, H, W] -> [H, W, C] for display
+        frame_tensor = video[:, frame_num, :, :].permute(1, 2, 0)
+        axes[row, col].imshow(frame_tensor.numpy())
+        axes[row, col].set_title(f'Frame {frame_num}')
+        axes[row, col].axis('off')
+    
+    plt.tight_layout()
+    plt.savefig("cropped_face_check.png", dpi=100, bbox_inches='tight')
+    print("✅ Saved 'cropped_face_check.png'")
+    print("   Open it to verify face cropping works correctly!")
+    
+    # Also save single frame for quick check
     frame_tensor = video[:, 50, :, :].permute(1, 2, 0)
-    plt.imsave("debug_face_loader.png", frame_tensor.numpy())
-    print("Saved 'debug_face_loader.png'. Please open it and check if it's a face!")
+    plt.imsave("debug_single_face.png", frame_tensor.numpy())
+    print("✅ Saved 'debug_single_face.png' (frame 50)")
