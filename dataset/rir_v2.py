@@ -4,6 +4,7 @@ import soundfile as sf
 import os
 import glob
 import random
+import shutil
 from pathlib import Path
 from tqdm import tqdm
 from scipy.signal import convolve
@@ -13,6 +14,7 @@ import argparse
 
 # --- CONFIGURATION ---
 SOURCE_DIR = Path("/run/media/neuronetix/BACKUP/Dataset/VOX/manual/dev/wav")
+VIDEO_SOURCE_DIR = Path("/mnt/DATA/Bibek/Speech/isolate-speech/data/mp4")
 
 # UPDATED: Output to 'multich' folder as requested
 OUTPUT_DIR = Path("/run/media/neuronetix/BACKUP/Dataset/VOX/manual/dev/multich")
@@ -50,9 +52,10 @@ def get_random_wav_chunk(file_list):
             peak = np.max(np.abs(audio))
             if peak > 0: audio = audio / peak
             
+            # Return audio, full path, and start time
             return audio, wav_path, start_sec
         except: continue
-    raise RuntimeError("No valid audio found")
+    raise RuntimeError("No valid audio found after 50 attempts")
 
 def process_single_file(args):
     """Process a single target file with RIR simulation"""
@@ -81,9 +84,11 @@ def process_single_file(args):
         
         # Get random noise file (retry logic)
         noise_dry = None
+        noise_wav_path = None
+        noise_start_sec = 0
         for attempt in range(10):
             try:
-                noise_dry, _, _ = get_random_wav_chunk(all_wavs)
+                noise_dry, noise_wav_path, noise_start_sec = get_random_wav_chunk(all_wavs)
                 break
             except:
                 continue
@@ -103,14 +108,29 @@ def process_single_file(args):
             mic_pos[2] = 1.0
             room.add_microphone_array(mic_pos[:, None] + mic_offsets)
 
-            # --- Sources ---
-            t_angle = random.uniform(0, 2*np.pi)
-            t_dist = random.uniform(0.8, 1.5)
-            t_pos = mic_pos + np.array([t_dist*np.cos(t_angle), t_dist*np.sin(t_angle), 0.2])
+            # --- Sources (3D Spherical Coordinates) ---
+            # Target source
+            t_azimuth = random.uniform(0, 2*np.pi)  # Horizontal angle (radians)
+            t_elevation = random.uniform(-np.pi/6, np.pi/6)  # Vertical angle (±30°)
+            t_distance = random.uniform(0.8, 1.5)  # Distance from mic center (meters)
             
-            n_angle = random.uniform(0, 2*np.pi)
-            n_dist = random.uniform(0.8, 1.5)
-            n_pos = mic_pos + np.array([n_dist*np.cos(n_angle), n_dist*np.sin(n_angle), 0.2])
+            # Convert spherical to Cartesian
+            t_pos = mic_pos + np.array([
+                t_distance * np.cos(t_elevation) * np.cos(t_azimuth),
+                t_distance * np.cos(t_elevation) * np.sin(t_azimuth),
+                t_distance * np.sin(t_elevation)
+            ])
+            
+            # Noise source
+            n_azimuth = random.uniform(0, 2*np.pi)
+            n_elevation = random.uniform(-np.pi/6, np.pi/6)
+            n_distance = random.uniform(0.8, 1.5)
+            
+            n_pos = mic_pos + np.array([
+                n_distance * np.cos(n_elevation) * np.cos(n_azimuth),
+                n_distance * np.cos(n_elevation) * np.sin(n_azimuth),
+                n_distance * np.sin(n_elevation)
+            ])
             
             if room.is_inside(t_pos) and room.is_inside(n_pos):
                 break
@@ -178,9 +198,44 @@ def process_single_file(args):
         sf.write(mixed_path, final_mix, FS)
         sf.write(clean_path, clean_ref, FS)
 
-        # Prepare metadata
-        vid_path = str(target_file).replace(".wav", ".mp4").replace("/wav/", "/mp4/")
-        metadata_line = f"{filename},{vid_path},{start_sec:.3f},{t_angle:.4f},{final_snr:.1f}\n"
+        # Prepare comprehensive metadata
+        # Extract relative paths for better portability
+        source_wav_rel = str(target_file).replace(str(SOURCE_DIR), "").lstrip("/")
+        
+        # Convert WAV path to video path
+        # WAV structure: .../idXXXXX/video_id/00095.wav
+        # Video structure: .../idXXXXX/video_id/00095.mp4
+        # Simply replace SOURCE_DIR with VIDEO_SOURCE_DIR and .wav with .mp4
+        source_vid_path = Path(str(target_file).replace(str(SOURCE_DIR), str(VIDEO_SOURCE_DIR)).replace(".wav", ".mp4"))
+        source_vid_rel = str(source_vid_path).replace(str(VIDEO_SOURCE_DIR), "").lstrip("/")
+        
+        # Copy video to output directory with sample filename
+        video_output_path = OUTPUT_DIR / "video" / f"{filename}.mp4"
+        try:
+            if source_vid_path.exists():
+                shutil.copy2(str(source_vid_path), str(video_output_path))
+                video_rel = f"video/{filename}.mp4"
+            else:
+                print(f"Warning: Video not found: {source_vid_path}")
+                video_rel = ""  # Mark as missing if video doesn't exist
+        except Exception as e:
+            print(f"Warning: Could not copy video for {filename}: {e}")
+            video_rel = ""
+        
+        # Audio output paths (relative to OUTPUT_DIR)
+        mixed_rel = f"mixed/{filename}.wav"
+        clean_rel = f"clean/{filename}.wav"
+        
+        # Calculate RT60 from absorption coefficient
+        rt60 = pra.inverse_sabine(e_abs, room_dim)[1]
+        
+        metadata_line = (
+            f"{filename},"
+            f"{source_wav_rel},{source_vid_rel},{start_sec:.3f},"
+            f"{mixed_rel},{clean_rel},{video_rel},"
+            f"{t_azimuth:.4f},{t_elevation:.4f},{t_distance:.4f},"
+            f"{room_dim[0]:.2f},{room_dim[1]:.2f},{room_dim[2]:.2f},{rt60:.3f},{final_snr:.1f}\n"
+        )
         
         return metadata_line
 
@@ -198,7 +253,8 @@ def generate_simulation(num_files=None):
     try:
         (OUTPUT_DIR / "mixed").mkdir(parents=True, exist_ok=True)
         (OUTPUT_DIR / "clean").mkdir(parents=True, exist_ok=True)
-        print("Directory created successfully.")
+        (OUTPUT_DIR / "video").mkdir(parents=True, exist_ok=True)
+        print("Directories created successfully.")
     except Exception as e:
         print(f"ERROR Creating Directory: {e}")
         return
@@ -236,7 +292,11 @@ def generate_simulation(num_files=None):
     # 3. Prepare metadata file
     meta_path = OUTPUT_DIR / "metadata.csv"
     with open(meta_path, "w") as f:
-        f.write("filename,video_path,start_time,azimuth,snr_db\n")
+        f.write("filename,"
+                "source_wav,source_video,start_time,"
+                "mixed_audio,clean_audio,video_file,"
+                "target_azimuth,target_elevation,target_distance,"
+                "room_x,room_y,room_z,rt60,snr_db\n")
 
     # 4. Prepare arguments for multiprocessing
     print(f"\nStarting multiprocessing with {NUM_WORKERS} workers...")

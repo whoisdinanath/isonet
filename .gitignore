@@ -4,3 +4,4 @@ reports
 models/checkpoints
 models/__pycache__
 data
+docs

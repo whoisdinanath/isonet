@@ -6,15 +6,23 @@ import os
 import cv2
 import numpy as np
 from pathlib import Path
+import sys
+
+# Import spatial augmentation
+sys.path.insert(0, str(Path(__file__).parent))
+from spatial_visual_augmentation import SpatialVisualAugmenter
 
 class IsoNetDataset(Dataset):
-    def __init__(self, csv_path, clip_length=4.0, fps=25, video_size=(112, 112)):
+    def __init__(self, csv_path, clip_length=4.0, fps=25, video_size=(112, 112), 
+                 apply_spatial_augmentation=True, augmentation_strength=1.0):
         """
         Args:
             csv_path (str): Path to train.csv or val.csv
             clip_length (float): Audio duration in seconds (must match simulation)
             fps (int): Target frames per second for video (VoxCeleb is 25)
             video_size (tuple): Target resize dimension (H, W)
+            apply_spatial_augmentation (bool): Apply spatial-visual augmentation
+            augmentation_strength (float): Strength of augmentation (0.0 = none, 1.0 = full)
         """
         self.meta = pd.read_csv(csv_path)
         
@@ -25,6 +33,15 @@ class IsoNetDataset(Dataset):
         self.fps = fps
         self.target_frames = int(clip_length * fps)  # 4.0 * 25 = 100 frames
         self.video_size = video_size
+        
+        # NEW: Spatial augmentation
+        self.apply_spatial_aug = apply_spatial_augmentation
+        if apply_spatial_augmentation:
+            self.augmenter = SpatialVisualAugmenter(
+                camera_fov_horizontal=90.0,
+                camera_fov_vertical=60.0,
+                augmentation_strength=augmentation_strength
+            )
 
     def __len__(self):
         return len(self.meta)
@@ -169,7 +186,20 @@ class IsoNetDataset(Dataset):
         # 3. Load Video
         video_tensor = self.load_video_frames(vid_path_str, start_time)
 
-        # 4. Final Verification (Optional, removed for speed but good for debug)
+        # 4. Apply Spatial Augmentation (NEW!)
+        if self.apply_spatial_aug:
+            # Check if spatial metadata exists in CSV
+            if all(col in row for col in ['target_azimuth', 'target_elevation', 'target_distance']):
+                video_tensor = self.augmenter.augment_video(
+                    video_tensor,
+                    azimuth=float(row['target_azimuth']),
+                    elevation=float(row['target_elevation']),
+                    distance=float(row['target_distance'])
+                )
+            else:
+                print(f"Warning: Spatial metadata missing for sample {idx}, skipping augmentation")
+
+        # 5. Final Verification (Optional, removed for speed but good for debug)
         # Ensure audio length matches exactly (sometimes MP3/WAV conversion adds ms)
         # For 4.0s @ 16kHz, we expect 64000 samples. 
         # Deep learning models need exact shapes.
@@ -184,7 +214,20 @@ class IsoNetDataset(Dataset):
             mixed_audio = torch.nn.functional.pad(mixed_audio, (0, pad_size))
             clean_audio = torch.nn.functional.pad(clean_audio, (0, pad_size))
 
-        return mixed_audio, clean_audio, video_tensor
+        # 6. Prepare Spatial Metadata for Training
+        spatial_meta = {}
+        if all(col in row for col in ['target_azimuth', 'target_elevation', 'target_distance']):
+            spatial_meta = {
+                'azimuth': float(row['target_azimuth']),
+                'elevation': float(row['target_elevation']),
+                'distance': float(row['target_distance']),
+                'noise_azimuth': float(row.get('noise_azimuth', 0.0)),
+                'noise_elevation': float(row.get('noise_elevation', 0.0)),
+                'rt60': float(row.get('rt60', 0.3)),
+                'snr_db': float(row.get('snr_db', 0.0))
+            }
+
+        return mixed_audio, clean_audio, video_tensor, spatial_meta
 
 # --- SELF-TEST BLOCK ---
 if __name__ == "__main__":
