@@ -1,0 +1,31 @@
+# IsoNet Real-time App Requirements
+
+# Core
+torch>=2.0.0
+torchaudio>=2.0.0
+torchvision>=0.15.0
+numpy>=1.24.0
+
+# Audio
+pyaudio>=0.2.13
+soundfile>=0.12.0
+librosa>=0.10.0
+
+# Serial communication (ESP32)
+pyserial>=3.5
+
+# Video
+opencv-python>=4.8.0
+
+# UI
+gradio>=4.0.0
+
+# Configuration
+pyyaml>=6.0
+
+# Utilities
+tqdm>=4.65.0
+
+# Optional: for better face detection
+# mediapipe>=0.10.0
+# dlib>=19.24.0

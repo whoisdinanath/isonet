@@ -7,6 +7,11 @@ import cv2
 import numpy as np
 from pathlib import Path
 import sys
+import warnings
+
+# Suppress torchaudio deprecation warnings about 2.9 changes
+warnings.filterwarnings('ignore', category=UserWarning, module='torchaudio._backend.utils')
+warnings.filterwarnings('ignore', category=UserWarning, module='torchaudio._backend.ffmpeg')
 
 # Import spatial augmentation
 sys.path.insert(0, str(Path(__file__).parent))
