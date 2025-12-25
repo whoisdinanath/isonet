@@ -105,41 +105,462 @@ class IsoNetApp:
         return self.latest_frame
 
 
-# Custom CSS for cleaner UI
+# Modern Tailwind-inspired CSS
 CUSTOM_CSS = """
-.main-container {
-    max-width: 1400px;
-    margin: 0 auto;
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* CSS Variables - Modern color palette */
+:root {
+    --tw-slate-50: #f8fafc;
+    --tw-slate-100: #f1f5f9;
+    --tw-slate-200: #e2e8f0;
+    --tw-slate-300: #cbd5e1;
+    --tw-slate-400: #94a3b8;
+    --tw-slate-500: #64748b;
+    --tw-slate-600: #475569;
+    --tw-slate-700: #334155;
+    --tw-slate-800: #1e293b;
+    --tw-slate-900: #0f172a;
+    --tw-blue-500: #3b82f6;
+    --tw-blue-600: #2563eb;
+    --tw-blue-700: #1d4ed8;
+    --tw-red-500: #ef4444;
+    --tw-red-600: #dc2626;
+    --tw-green-500: #22c55e;
+    --tw-green-600: #16a34a;
 }
-.status-indicator {
+
+/* Force light mode everywhere */
+.dark, [data-theme="dark"] {
+    --tw-slate-50: #f8fafc !important;
+    --tw-slate-100: #f1f5f9 !important;
+    --tw-slate-800: #1e293b !important;
+    --tw-slate-900: #0f172a !important;
+}
+
+/* Base container */
+.gradio-container {
+    max-width: 1280px !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: var(--tw-slate-50) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    min-height: 100vh !important;
+}
+
+/* Force light background on everything */
+.gradio-container, .gradio-container * {
+    --block-background-fill: white !important;
+    --body-background-fill: #f8fafc !important;
+}
+
+footer { display: none !important; }
+
+/* Header */
+.app-header {
+    background: linear-gradient(135deg, var(--tw-slate-900) 0%, var(--tw-slate-800) 100%);
+    padding: 32px 40px;
+    margin: 0;
+    border-radius: 0 0 24px 24px;
+}
+
+.app-header h1 {
+    color: white;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.5px;
+}
+
+.app-header p {
+    color: var(--tw-slate-400);
+    font-size: 15px;
+    margin: 6px 0 0 0;
+    font-weight: 400;
+}
+
+/* Main content wrapper */
+.main-content {
+    padding: 32px 40px;
+}
+
+/* Tab navigation */
+.tabs {
+    background: transparent !important;
+    border: none !important;
+}
+
+.tab-nav {
+    background: white !important;
+    border-radius: 12px !important;
+    padding: 6px !important;
+    margin: 24px 40px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    border: 1px solid var(--tw-slate-200) !important;
+    display: inline-flex !important;
+    gap: 4px !important;
+}
+
+button.tab-nav {
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    padding: 10px 20px !important;
+    border: none !important;
+    background: transparent !important;
+    color: var(--tw-slate-500) !important;
+    border-radius: 8px !important;
+    transition: all 0.15s ease !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
+}
+
+button.tab-nav:hover {
+    color: var(--tw-slate-700) !important;
+    background: var(--tw-slate-50) !important;
+}
+
+button.tab-nav.selected {
+    background: var(--tw-blue-600) !important;
+    color: white !important;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2) !important;
+}
+
+/* Cards */
+.card {
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--tw-slate-200);
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tw-slate-400);
+    margin: 0 0 16px 0;
+}
+
+/* Video container */
+.video-container {
+    border-radius: 16px !important;
+    overflow: hidden !important;
+    background: var(--tw-slate-900) !important;
+    border: none !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1) !important;
+}
+
+.video-container img {
+    border-radius: 16px !important;
+}
+
+/* Status badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     padding: 8px 16px;
-    border-radius: 20px;
-    font-weight: bold;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.status-badge.running {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-badge.stopped {
+    background: var(--tw-slate-100);
+    color: var(--tw-slate-600);
+}
+
+/* Status display styling */
+.status-display input {
+    background: var(--tw-slate-100) !important;
+    border: none !important;
+    border-radius: 100px !important;
+    padding: 10px 20px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    color: var(--tw-slate-600) !important;
+    text-align: center !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* Stats grid */
+.stat-card {
+    background: white;
+    border: 1px solid var(--tw-slate-200);
+    border-radius: 12px;
+    padding: 16px 20px;
     text-align: center;
 }
-.status-running {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
+
+.stat-item input {
+    background: transparent !important;
+    border: none !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    color: var(--tw-slate-800) !important;
+    text-align: center !important;
+    padding: 0 !important;
 }
-.status-stopped {
-    background: linear-gradient(135deg, #6b7280, #4b5563);
-    color: white;
+
+.stat-item label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    color: var(--tw-slate-400) !important;
 }
-.stats-card {
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid #e2e8f0;
+
+/* Buttons */
+.btn-primary, button.primary {
+    background: var(--tw-blue-600) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 12px 28px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2) !important;
+    transition: all 0.15s ease !important;
+    text-transform: none !important;
+    letter-spacing: 0 !important;
 }
-.control-btn {
-    min-height: 48px;
+
+.btn-primary:hover, button.primary:hover {
+    background: var(--tw-blue-700) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.25) !important;
+}
+
+.btn-stop, button.stop {
+    background: var(--tw-red-500) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 12px 28px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    transition: all 0.15s ease !important;
+    text-transform: none !important;
+}
+
+.btn-stop:hover, button.stop:hover {
+    background: var(--tw-red-600) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-secondary {
+    background: white !important;
+    color: var(--tw-slate-700) !important;
+    border: 1px solid var(--tw-slate-200) !important;
+    border-radius: 10px !important;
+    padding: 12px 28px !important;
+    font-weight: 600 !important;
+    font-size: 14px !important;
+    transition: all 0.15s ease !important;
+    text-transform: none !important;
+}
+
+.btn-secondary:hover {
+    background: var(--tw-slate-50) !important;
+    border-color: var(--tw-slate-300) !important;
+}
+
+/* Audio components */
+.audio-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tw-slate-400);
+    margin-bottom: 10px;
+}
+
+.audio-section, .audio-section > div {
+    background: white !important;
+    border: 1px solid var(--tw-slate-200) !important;
+    border-radius: 12px !important;
+}
+
+/* Card title */
+.card-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--tw-slate-400);
+    margin: 0 0 16px 0;
+    padding: 0;
+    border: none;
+}
+
+/* Settings */
+.settings-title {
     font-size: 16px;
+    font-weight: 600;
+    color: var(--tw-slate-800);
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--tw-slate-200);
 }
-footer {
-    display: none !important;
+
+/* Form inputs */
+input[type="text"], input[type="number"], textarea, select {
+    background: white !important;
+    border: 1px solid var(--tw-slate-200) !important;
+    border-radius: 10px !important;
+    padding: 12px 16px !important;
+    font-size: 14px !important;
+    color: var(--tw-slate-800) !important;
+    transition: all 0.15s ease !important;
+    font-family: 'Inter', sans-serif !important;
 }
-.gradio-container {
-    max-width: 100% !important;
+
+input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+    border-color: var(--tw-blue-500) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Labels */
+label, .gr-block-label {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: var(--tw-slate-600) !important;
+    margin-bottom: 6px !important;
+}
+
+/* Slider */
+input[type="range"] {
+    accent-color: var(--tw-blue-600) !important;
+    height: 6px !important;
+}
+
+/* Checkbox */
+input[type="checkbox"] {
+    accent-color: var(--tw-blue-600) !important;
+    width: 18px !important;
+    height: 18px !important;
+    border-radius: 4px !important;
+}
+
+/* Radio */
+input[type="radio"] {
+    accent-color: var(--tw-blue-600) !important;
+}
+
+/* Groups */
+.gr-group {
+    background: white !important;
+    border: 1px solid var(--tw-slate-200) !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+}
+
+/* Dropdown */
+.gr-dropdown, select {
+    background: white !important;
+    border: 1px solid var(--tw-slate-200) !important;
+    border-radius: 10px !important;
+}
+
+/* Divider */
+.divider {
+    height: 1px;
+    background: var(--tw-slate-200);
+    margin: 28px 0;
+    border: none;
+}
+
+/* About section */
+.about-content {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 32px;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--tw-slate-200);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.about-content h2 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--tw-slate-900);
+    margin: 0 0 12px 0;
+    letter-spacing: -0.5px;
+}
+
+.about-content h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--tw-slate-800);
+    margin: 28px 0 12px 0;
+}
+
+.about-content p {
+    color: var(--tw-slate-600);
+    line-height: 1.7;
+    margin: 0 0 16px 0;
+}
+
+.about-content ul, .about-content ol {
+    padding-left: 20px;
+    margin: 0 0 20px 0;
+}
+
+.about-content li {
+    color: var(--tw-slate-600);
+    line-height: 1.7;
+    margin-bottom: 8px;
+}
+
+.about-content strong {
+    color: var(--tw-slate-800);
+    font-weight: 600;
+}
+
+/* Container backgrounds - force white */
+.gr-form, .gr-box, .gr-panel {
+    background: white !important;
+    border: 1px solid var(--tw-slate-200) !important;
+    border-radius: 12px !important;
+}
+
+/* Block backgrounds */
+.block {
+    background: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+}
+
+/* Tab content area */
+.tabitem {
+    background: transparent !important;
+    padding: 24px 40px !important;
+}
+
+/* Row gaps */
+.gr-row {
+    gap: 20px !important;
+}
+
+.gr-column {
+    gap: 16px !important;
+}
+
+/* Image component background */
+.gr-image {
+    background: var(--tw-slate-900) !important;
+    border-radius: 16px !important;
 }
 """
 
@@ -147,12 +568,73 @@ footer {
 def create_gradio_ui(app: IsoNetApp) -> "GradioBlocks":
     """Create Gradio web UI for the app."""
     
-    with gr.Blocks(title="IsoNet - Speaker Isolation") as demo:
-        # Header
+    # Modern Tailwind-inspired theme
+    theme = gr.themes.Base(
+        primary_hue="blue",
+        secondary_hue="slate",
+        neutral_hue="slate",
+        font=gr.themes.GoogleFont("Inter"),
+        font_mono=gr.themes.GoogleFont("JetBrains Mono"),
+    ).set(
+        # Light backgrounds
+        body_background_fill="#f8fafc",
+        body_background_fill_dark="#f8fafc",
+        block_background_fill="white",
+        block_background_fill_dark="white",
+        # Primary button
+        button_primary_background_fill="#2563eb",
+        button_primary_background_fill_hover="#1d4ed8",
+        button_primary_background_fill_dark="#2563eb",
+        button_primary_text_color="white",
+        button_primary_text_color_dark="white",
+        # Secondary button
+        button_secondary_background_fill="white",
+        button_secondary_background_fill_dark="white",
+        button_secondary_border_color="#e2e8f0",
+        button_secondary_text_color="#334155",
+        # Inputs
+        input_background_fill="white",
+        input_background_fill_dark="white",
+        input_border_color="#e2e8f0",
+        input_border_color_focus="#3b82f6",
+        # Borders
+        border_color_primary="#e2e8f0",
+        block_border_color="#e2e8f0",
+        # Text
+        body_text_color="#1e293b",
+        body_text_color_dark="#1e293b",
+        block_label_text_color="#64748b",
+        block_title_text_color="#1e293b",
+        # Sizing
+        block_title_text_size="14px",
+        block_label_text_size="13px",
+        # Radius
+        radius_sm="8px",
+        radius_md="10px",
+        radius_lg="16px",
+        # Shadows
+        shadow_sm="0 1px 2px rgba(0,0,0,0.05)",
+        shadow_md="0 4px 6px -1px rgba(0,0,0,0.1)",
+    )
+    
+    with gr.Blocks(title="IsoNet - Speaker Isolation", css=CUSTOM_CSS, theme=theme) as demo:
+        # Modern header with gradient
         gr.HTML("""
-        <div style="text-align: center; padding: 20px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; margin-bottom: 20px;">
-            <h1 style="color: white; margin: 0; font-size: 2.5em;">IsoNet</h1>
-            <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 1.1em;">Real-time Speaker Isolation System</p>
+        <div class="app-header">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/>
+                        <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1>IsoNet</h1>
+                    <p>Real-time Speaker Isolation System</p>
+                </div>
+            </div>
         </div>
         """)
         
@@ -161,86 +643,108 @@ def create_gradio_ui(app: IsoNetApp) -> "GradioBlocks":
             with gr.Tab("Live", id="live"):
                 with gr.Row(equal_height=True):
                     # Left: Video feed
-                    with gr.Column(scale=2):
+                    with gr.Column(scale=3):
+                        gr.HTML('<div class="card-title">Camera Feed</div>')
                         video_output = gr.Image(
-                            label="Camera Feed",
-                            height=400,
+                            label=None,
+                            height=440,
                             show_label=False,
-                            container=True
+                            container=True,
+                            elem_classes=["video-container"]
                         )
                         
                         # Control buttons
+                        gr.HTML('<div style="height: 16px;"></div>')
                         with gr.Row():
                             start_btn = gr.Button(
-                                "Start",
+                                "Start Isolation",
                                 variant="primary",
                                 size="lg",
-                                elem_classes=["control-btn"]
+                                elem_classes=["btn-primary"]
                             )
                             stop_btn = gr.Button(
                                 "Stop",
                                 variant="stop",
                                 size="lg",
-                                elem_classes=["control-btn"]
+                                elem_classes=["btn-stop"]
                             )
                     
-                    # Right: Status and Audio
-                    with gr.Column(scale=1):
-                        # Status card
-                        gr.HTML("<h3 style='margin: 0 0 12px 0;'>System Status</h3>")
+                    # Right: Status and Stats
+                    with gr.Column(scale=1, min_width=300):
+                        # Status section
+                        gr.HTML('<div class="card-title">Status</div>')
                         status_text = gr.Textbox(
                             value="Stopped",
                             show_label=False,
                             interactive=False,
-                            container=False
+                            container=False,
+                            elem_classes=["status-display"]
                         )
                         
-                        # Live stats
-                        gr.HTML("<h3 style='margin: 16px 0 12px 0;'>Live Statistics</h3>")
-                        with gr.Group():
-                            audio_packets = gr.Textbox(
-                                label="Audio Packets",
-                                value="0",
-                                interactive=False
-                            )
-                            video_frames = gr.Textbox(
-                                label="Video Frames", 
-                                value="0",
-                                interactive=False
-                            )
-                            inferences = gr.Textbox(
-                                label="Inferences",
-                                value="0",
-                                interactive=False
-                            )
-                            latency = gr.Textbox(
-                                label="Avg Latency",
-                                value="-- ms",
-                                interactive=False
-                            )
+                        gr.HTML('<div style="height: 24px;"></div>')
+                        
+                        # Statistics section
+                        gr.HTML('<div class="card-title">Live Statistics</div>')
+                        
+                        with gr.Row():
+                            with gr.Column(scale=1, min_width=120):
+                                audio_packets = gr.Textbox(
+                                    label="Audio",
+                                    value="0",
+                                    interactive=False,
+                                    elem_classes=["stat-item"]
+                                )
+                            with gr.Column(scale=1, min_width=120):
+                                video_frames = gr.Textbox(
+                                    label="Frames", 
+                                    value="0",
+                                    interactive=False,
+                                    elem_classes=["stat-item"]
+                                )
+                        
+                        with gr.Row():
+                            with gr.Column(scale=1, min_width=120):
+                                inferences = gr.Textbox(
+                                    label="Inferences",
+                                    value="0",
+                                    interactive=False,
+                                    elem_classes=["stat-item"]
+                                )
+                            with gr.Column(scale=1, min_width=120):
+                                latency = gr.Textbox(
+                                    label="Latency",
+                                    value="--",
+                                    interactive=False,
+                                    elem_classes=["stat-item"]
+                                )
                 
                 # Audio section
-                gr.HTML("<h3 style='margin: 24px 0 12px 0;'>Audio Streams</h3>")
+                gr.HTML('<div style="height: 32px;"></div>')
+                gr.HTML('<div class="card-title">Audio Streams</div>')
+                
                 with gr.Row():
                     with gr.Column():
-                        gr.HTML("<p style='color: #666; margin: 0 0 8px 0;'>Input (Mixed)</p>")
+                        gr.HTML('<div class="audio-label">Input (Mixed)</div>')
                         input_waveform = gr.Audio(
                             show_label=False,
-                            interactive=False
+                            interactive=False,
+                            elem_classes=["audio-section"]
                         )
                     with gr.Column():
-                        gr.HTML("<p style='color: #666; margin: 0 0 8px 0;'>Output (Isolated)</p>")
+                        gr.HTML('<div class="audio-label">Output (Isolated)</div>')
                         output_waveform = gr.Audio(
                             show_label=False,
-                            interactive=False
+                            interactive=False,
+                            elem_classes=["audio-section"]
                         )
             
             # Settings Tab
             with gr.Tab("Settings", id="settings"):
+                gr.HTML('<div style="height: 8px;"></div>')
                 with gr.Row():
                     # Audio/Connection Settings
                     with gr.Column():
-                        gr.HTML("<h3 style='margin: 0 0 16px 0;'>ESP32 Connection</h3>")
+                        gr.HTML('<div class="settings-title">ESP32 Connection</div>')
                         
                         esp32_mode = gr.Radio(
                             choices=["serial", "udp", "tcp"],
@@ -274,7 +778,7 @@ def create_gradio_ui(app: IsoNetApp) -> "GradioBlocks":
                     
                     # Camera Settings
                     with gr.Column():
-                        gr.HTML("<h3 style='margin: 0 0 16px 0;'>Camera</h3>")
+                        gr.HTML('<div class="settings-title">Camera</div>')
                         
                         camera_id = gr.Number(
                             label="Device ID",
@@ -310,7 +814,7 @@ def create_gradio_ui(app: IsoNetApp) -> "GradioBlocks":
                     
                     # Model Settings
                     with gr.Column():
-                        gr.HTML("<h3 style='margin: 0 0 16px 0;'>Model</h3>")
+                        gr.HTML('<div class="settings-title">Model</div>')
                         
                         checkpoint_path = gr.Textbox(
                             label="Checkpoint",
@@ -338,18 +842,20 @@ def create_gradio_ui(app: IsoNetApp) -> "GradioBlocks":
                             info="Detect every N frames"
                         )
                 
-                gr.HTML("<div style='height: 16px'></div>")
+                gr.HTML('<div class="divider"></div>')
                 
                 with gr.Row():
                     apply_settings_btn = gr.Button(
                         "Apply Settings",
                         variant="primary",
-                        size="lg"
+                        size="lg",
+                        elem_classes=["btn-primary"]
                     )
                     reset_settings_btn = gr.Button(
                         "Reset to Defaults",
                         variant="secondary",
-                        size="lg"
+                        size="lg",
+                        elem_classes=["btn-secondary"]
                     )
                 
                 settings_status = gr.Textbox(
@@ -374,9 +880,21 @@ def create_gradio_ui(app: IsoNetApp) -> "GradioBlocks":
             # About Tab
             with gr.Tab("About", id="about"):
                 gr.HTML("""
-                <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-                    <h2>About IsoNet</h2>
-                    <p>IsoNet is a real-time speaker isolation system that combines:</p>
+                <div class="about-content">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                        <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                <line x1="12" y1="19" x2="12" y2="23"/>
+                                <line x1="8" y1="23" x2="16" y2="23"/>
+                            </svg>
+                        </div>
+                        <h2 style="margin: 0;">About IsoNet</h2>
+                    </div>
+                    
+                    <p>IsoNet is a real-time speaker isolation system that combines advanced audio and visual processing:</p>
+                    
                     <ul>
                         <li><strong>4-Channel Microphone Array</strong> - Spatial audio capture via ESP32</li>
                         <li><strong>Computer Vision</strong> - Face detection and lip movement analysis</li>
@@ -396,6 +914,9 @@ def create_gradio_ui(app: IsoNetApp) -> "GradioBlocks":
                         <li>Configure connection in Settings tab</li>
                         <li>Click Start to begin isolation</li>
                     </ol>
+                    
+                    <div style="height: 1px; background: #e2e8f0; margin: 28px 0;"></div>
+                    <p style="color: #94a3b8; font-size: 13px; margin: 0;">Version 1.0 &middot; IsoNet Speaker Isolation System</p>
                 </div>
                 """)
         

@@ -2,11 +2,11 @@
 
 A deep learning system that isolates a specific speaker's voice from a multi-speaker environment using both audio and video.
 
-
 ## What It Does
 
 Imagine you're in a noisy room with multiple people talking. IsoNet uses a 4-microphone array and a camera to:
-- Detect who's actively speaking by watching their lips
+
+- Detect who's actively speaking
 - Use spatial audio processing to focus on that speaker
 - Output clean, isolated audio of just that person
 
